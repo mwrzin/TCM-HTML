@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador Radial de Calor Transiente</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7f6;
+      --surface: #ffffff;
+      --surface-soft: #eef4f1;
+      --ink: #17211f;
+      --muted: #65736e;
+      --line: #d8e1dd;
+      --accent: #0f766e;
+      --accent-dark: #12443f;
+      --warm: #c56b2c;
+      --cool: #265d8f;
+      --shadow: 0 14px 36px rgba(23, 33, 31, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .app-shell {
+      width: min(1360px, 100%);
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 18px 0 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: var(--accent-dark);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 1rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      line-height: 1.15;
+    }
+
+    .subtitle {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .model-chip {
+      align-self: flex-start;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--accent-dark);
+      font-size: 0.86rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .visual-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .controls-panel {
+      padding: 14px;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(15, 118, 110, 0.12);
+      flex: 0 0 auto;
+    }
+
+    .control-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .control-card {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfc;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    label {
+      font-size: 0.88rem;
+      font-weight: 750;
+    }
+
+    .value-pill {
+      min-width: 94px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: var(--surface-soft);
+      color: var(--accent-dark);
+      text-align: right;
+      font-size: 0.82rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 28px;
+      margin: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .range-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      width: 100%;
+      min-height: 46px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent-dark);
+      color: #ffffff;
+      font-size: 0.96rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button.is-running {
+      background: var(--warm);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .metric {
+      min-height: 78px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-soft);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 750;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 7px;
+      color: var(--ink);
+      font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .movie-panel {
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .canvas-frame {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      min-height: 280px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fbfcfc;
+    }
+
+    #wellCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .flow-legend {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 7px 10px;
+      border: 1px solid rgba(216, 225, 221, 0.9);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--accent-dark);
+      font-size: 0.76rem;
+      font-weight: 800;
+      text-align: center;
+      backdrop-filter: blur(8px);
+    }
+
+    .flow-arrow-line {
+      position: relative;
+      width: 58px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--warm);
+      flex: 0 0 58px;
+    }
+
+    .flow-arrow-line::after {
+      content: "";
+      position: absolute;
+      right: -1px;
+      top: 50%;
+      width: 9px;
+      height: 9px;
+      border-top: 3px solid var(--warm);
+      border-right: 3px solid var(--warm);
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    .flow-legend.is-inward .flow-arrow-line {
+      transform: rotate(180deg);
+      background: var(--cool);
+    }
+
+    .flow-legend.is-inward .flow-arrow-line::after {
+      border-color: var(--cool);
+    }
+
+    .heatbar {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 750;
+    }
+
+    .heatbar-track {
+      height: 10px;
+      border: 1px solid rgba(23, 33, 31, 0.1);
+      border-radius: 5px;
+      background: linear-gradient(90deg, #14213d, #265d8f, #20a39e, #f4c95d, #e76f51, #b91c1c);
+    }
+
+    .plot-panel {
+      overflow: hidden;
+    }
+
+    #plot {
+      width: 100%;
+      height: 380px;
+    }
+
+    .equation-strip {
+      display: grid;
+      gap: 10px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      background: #fbfcfc;
+    }
+
+    .equation-strip code {
+      display: block;
+      overflow-x: auto;
+      color: var(--accent-dark);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .legend-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      background: var(--accent);
+    }
+
+    .swatch.hot {
+      background: var(--warm);
+    }
+
+    .swatch.cool {
+      background: var(--cool);
+    }
+
+    @media (min-width: 720px) {
+      .app-shell {
+        padding: 24px;
+      }
+
+      .topbar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      #plot {
+        height: 500px;
+      }
+    }
+
+    @media (min-width: 1120px) {
+      .visual-grid {
+        grid-template-columns: minmax(300px, 0.86fr) minmax(450px, 1.14fr);
+      }
+
+      #plot {
+        height: 470px;
+      }
+    }
+
+    @media (min-width: 980px) {
+      .dashboard {
+        grid-template-columns: 360px minmax(0, 1fr);
+      }
+
+      .controls-panel {
+        position: sticky;
+        top: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">1D</div>
+        <div>
+          <h1>Calor transiente radial em poço</h1>
+          <p class="subtitle">Diferenças finitas em coordenadas cilíndricas</p>
+        </div>
+      </div>
+      <div class="model-chip">T(rw)=Tw · T(rmax)=Tf</div>
+    </header>
+
+    <main class="dashboard">
+      <section class="panel controls-panel" aria-label="Controles da simulação">
+        <div class="panel-head">
+          <h2 class="panel-title">Parâmetros</h2>
+          <span class="status-dot" aria-hidden="true"></span>
+        </div>
+
+        <div class="control-list">
+          <div class="control-card">
+            <div class="control-row">
+              <label for="tw">Temperatura do Poço, Tw</label>
+              <output class="value-pill" id="twValue" for="tw"></output>
+            </div>
+            <input id="tw" type="range" min="40" max="180" step="1" value="110" />
+            <div class="range-meta"><span>40 °C</span><span>180 °C</span></div>
+          </div>
+
+          <div class="control-card">
+            <div class="control-row">
+              <label for="tf">Temperatura Inicial da Formação, Tf</label>
+              <output class="value-pill" id="tfValue" for="tf"></output>
+            </div>
+            <input id="tf" type="range" min="10" max="130" step="1" value="60" />
+            <div class="range-meta"><span>10 °C</span><span>130 °C</span></div>
+          </div>
+
+          <div class="control-card">
+            <div class="control-row">
+              <label for="rw">Raio do Poço, rw</label>
+              <output class="value-pill" id="rwValue" for="rw"></output>
+            </div>
+            <input id="rw" type="range" min="0.05" max="0.50" step="0.01" value="0.15" />
+            <div class="range-meta"><span>0,05 m</span><span>0,50 m</span></div>
+          </div>
+
+          <div class="control-card">
+            <div class="control-row">
+              <label for="alpha">Difusividade Térmica, α</label>
+              <output class="value-pill" id="alphaValue" for="alpha"></output>
+            </div>
+            <input id="alpha" type="range" min="0.20" max="5.00" step="0.05" value="1.20" />
+            <div class="range-meta"><span>0,20</span><span>5,00 ×10⁻⁶ m²/s</span></div>
+          </div>
+
+          <div class="control-card">
+            <div class="control-row">
+              <label for="time">Tempo, t</label>
+              <output class="value-pill" id="timeValue" for="time"></output>
+            </div>
+            <input id="time" type="range" min="0" max="180" step="1" value="30" />
+            <div class="range-meta"><span>0 dia</span><span>180 dias</span></div>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button id="animateBtn" type="button">Animar</button>
+        </div>
+
+        <div class="metrics" aria-label="Resultados numéricos">
+          <div class="metric">
+            <span>T a 1 m</span>
+            <strong id="temp1m">--</strong>
+          </div>
+          <div class="metric">
+            <span>T a 10 m</span>
+            <strong id="temp10m">--</strong>
+          </div>
+          <div class="metric">
+            <span>Comprimento √(αt)</span>
+            <strong id="diffLength">--</strong>
+          </div>
+          <div class="metric">
+            <span>Subpassos</span>
+            <strong id="stepCount">--</strong>
+          </div>
+        </div>
+      </section>
+
+      <div class="visual-grid">
+        <section class="panel movie-panel" aria-label="Corte transversal do poço">
+          <div class="panel-head">
+            <h2 class="panel-title">Corte transversal</h2>
+            <span class="status-dot" aria-hidden="true"></span>
+          </div>
+          <div class="canvas-frame">
+            <canvas id="wellCanvas" width="720" height="720"></canvas>
+            <div class="flow-legend" id="flowLegend">
+              <span class="flow-arrow-line" aria-hidden="true"></span>
+              <span id="flowDirection">Fluxo do poço para a formação</span>
+            </div>
+          </div>
+          <div class="heatbar" aria-hidden="true">
+            <span>Frio</span>
+            <span class="heatbar-track"></span>
+            <span>Quente</span>
+          </div>
+        </section>
+
+        <section class="panel plot-panel" aria-label="Gráfico de temperatura radial">
+          <div id="plot"></div>
+          <div class="equation-strip">
+            <code>∂T/∂t = α(∂²T/∂r² + (1/r)∂T/∂r)</code>
+            <div class="legend-row">
+              <span class="legend-item"><span class="swatch hot"></span>Poço</span>
+              <span class="legend-item"><span class="swatch"></span>Perfil T(r)</span>
+              <span class="legend-item"><span class="swatch cool"></span>Formação</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const rMax = 50; // raio externo do domínio em metros
+    const nodeCount = 170; // número de nós radiais usados na malha
+    const dayInSeconds = 24 * 60 * 60;
+
+    const controls = {
+      tw: document.getElementById("tw"),
+      tf: document.getElementById("tf"),
+      rw: document.getElementById("rw"),
+      alpha: document.getElementById("alpha"),
+      time: document.getElementById("time")
+    };
+
+    const outputs = {
+      tw: document.getElementById("twValue"),
+      tf: document.getElementById("tfValue"),
+      rw: document.getElementById("rwValue"),
+      alpha: document.getElementById("alphaValue"),
+      time: document.getElementById("timeValue"),
+      temp1m: document.getElementById("temp1m"),
+      temp10m: document.getElementById("temp10m"),
+      diffLength: document.getElementById("diffLength"),
+      stepCount: document.getElementById("stepCount")
+    };
+
+    const animateBtn = document.getElementById("animateBtn");
+    const plotElement = document.getElementById("plot");
+    const wellCanvas = document.getElementById("wellCanvas");
+    const canvasContext = wellCanvas.getContext("2d");
+    const flowLegend = document.getElementById("flowLegend");
+    const flowDirection = document.getElementById("flowDirection");
+
+    let animationFrameId = null;
+    let lastAnimationTick = 0;
+    let updateQueued = false;
+
+    function getParams() {
+      return {
+        tw: Number(controls.tw.value),
+        tf: Number(controls.tf.value),
+        rw: Number(controls.rw.value),
+        alpha: Number(controls.alpha.value) * 1e-6,
+        alphaDisplay: Number(controls.alpha.value),
+        days: Number(controls.time.value)
+      };
+    }
+
+    function formatNumber(value, digits = 2) {
+      return value.toLocaleString("pt-BR", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+    }
+
+    function nearestTemperature(radii, temperatures, targetRadius) {
+      let bestIndex = 0;
+      let bestDistance = Math.abs(radii[0] - targetRadius);
+
+      for (let i = 1; i < radii.length; i++) {
+        const distance = Math.abs(radii[i] - targetRadius);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = i;
+        }
+      }
+
+      return temperatures[bestIndex];
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function interpolateTemperature(radii, temperatures, targetRadius) {
+      if (targetRadius <= radii[0]) return temperatures[0];
+      if (targetRadius >= radii[radii.length - 1]) return temperatures[temperatures.length - 1];
+
+      for (let i = 0; i < radii.length - 1; i++) {
+        if (targetRadius >= radii[i] && targetRadius <= radii[i + 1]) {
+          const fraction = (targetRadius - radii[i]) / (radii[i + 1] - radii[i]);
+          return temperatures[i] + fraction * (temperatures[i + 1] - temperatures[i]);
+        }
+      }
+
+      return temperatures[temperatures.length - 1];
+    }
+
+    function mixColor(colorA, colorB, fraction) {
+      const amount = clamp(fraction, 0, 1);
+      const red = Math.round(colorA[0] + (colorB[0] - colorA[0]) * amount);
+      const green = Math.round(colorA[1] + (colorB[1] - colorA[1]) * amount);
+      const blue = Math.round(colorA[2] + (colorB[2] - colorA[2]) * amount);
+      return `rgb(${red}, ${green}, ${blue})`;
+    }
+
+    function temperatureToColor(temperature, minTemperature, maxTemperature) {
+      const span = Math.max(1e-9, maxTemperature - minTemperature);
+      const normalized = clamp((temperature - minTemperature) / span, 0, 1);
+      const stops = [
+        { at: 0.00, color: [20, 33, 61] },
+        { at: 0.24, color: [38, 93, 143] },
+        { at: 0.48, color: [32, 163, 158] },
+        { at: 0.70, color: [244, 201, 93] },
+        { at: 0.86, color: [231, 111, 81] },
+        { at: 1.00, color: [185, 28, 28] }
+      ];
+
+      for (let i = 0; i < stops.length - 1; i++) {
+        const current = stops[i];
+        const next = stops[i + 1];
+
+        if (normalized >= current.at && normalized <= next.at) {
+          return mixColor(current.color, next.color, (normalized - current.at) / (next.at - current.at));
+        }
+      }
+
+      return mixColor(stops[stops.length - 1].color, stops[stops.length - 1].color, 0);
+    }
+
+    function resizeCanvasToDisplaySize() {
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const rect = wellCanvas.getBoundingClientRect();
+      const width = Math.max(1, Math.round(rect.width * pixelRatio));
+      const height = Math.max(1, Math.round(rect.height * pixelRatio));
+
+      if (wellCanvas.width !== width || wellCanvas.height !== height) {
+        wellCanvas.width = width;
+        wellCanvas.height = height;
+      }
+    }
+
+    function drawArrow(context, centerX, centerY, fromRadius, toRadius, angle, color) {
+      const fromX = centerX + Math.cos(angle) * fromRadius;
+      const fromY = centerY + Math.sin(angle) * fromRadius;
+      const toX = centerX + Math.cos(angle) * toRadius;
+      const toY = centerY + Math.sin(angle) * toRadius;
+      const headSize = Math.max(8, Math.min(context.canvas.width, context.canvas.height) * 0.018);
+      const direction = Math.atan2(toY - fromY, toX - fromX);
+
+      context.save();
+      context.strokeStyle = color;
+      context.fillStyle = color;
+      context.lineWidth = Math.max(2, context.canvas.width * 0.004);
+      context.lineCap = "round";
+      context.beginPath();
+      context.moveTo(fromX, fromY);
+      context.lineTo(toX, toY);
+      context.stroke();
+
+      context.beginPath();
+      context.moveTo(toX, toY);
+      context.lineTo(
+        toX - headSize * Math.cos(direction - Math.PI / 6),
+        toY - headSize * Math.sin(direction - Math.PI / 6)
+      );
+      context.lineTo(
+        toX - headSize * Math.cos(direction + Math.PI / 6),
+        toY - headSize * Math.sin(direction + Math.PI / 6)
+      );
+      context.closePath();
+      context.fill();
+      context.restore();
+    }
+
+    function renderWellCanvas(params, result) {
+      resizeCanvasToDisplaySize();
+
+      const context = canvasContext;
+      const width = wellCanvas.width;
+      const height = wellCanvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const outerRadius = Math.min(width, height) * 0.42;
+      const wellRadiusScale = (params.rw - Number(controls.rw.min)) / (Number(controls.rw.max) - Number(controls.rw.min));
+      const wellRadius = outerRadius * (0.10 + 0.08 * clamp(wellRadiusScale, 0, 1));
+      const minTemperature = Math.min(params.tw, params.tf);
+      const maxTemperature = Math.max(params.tw, params.tf);
+      const ringCount = 150;
+
+      context.clearRect(0, 0, width, height);
+      context.fillStyle = "#fbfcfc";
+      context.fillRect(0, 0, width, height);
+
+      // O canvas usa a mesma malha radial da solucao numerica.
+      // Cada anel consulta T(r) por interpolacao e converte essa temperatura em cor.
+      // A escala visual usa raiz quadrada para ampliar a regiao perto do poco,
+      // onde o gradiente termico costuma mudar mais rapidamente.
+      for (let ring = ringCount; ring >= 1; ring--) {
+        const fraction = ring / ringCount;
+        const physicalRadius = params.rw + fraction * (rMax - params.rw);
+        const canvasRadius = wellRadius + Math.sqrt(fraction) * (outerRadius - wellRadius);
+        const temperature = interpolateTemperature(result.radii, result.temperature, physicalRadius);
+
+        context.beginPath();
+        context.arc(centerX, centerY, canvasRadius, 0, Math.PI * 2);
+        context.fillStyle = temperatureToColor(temperature, minTemperature, maxTemperature);
+        context.fill();
+      }
+
+      context.save();
+      context.strokeStyle = "rgba(255, 255, 255, 0.38)";
+      context.lineWidth = Math.max(1, width * 0.002);
+      for (let guide = 1; guide <= 6; guide++) {
+        const fraction = guide / 6;
+        const guideRadius = wellRadius + Math.sqrt(fraction) * (outerRadius - wellRadius);
+        context.beginPath();
+        context.arc(centerX, centerY, guideRadius, 0, Math.PI * 2);
+        context.stroke();
+      }
+      context.restore();
+
+      const wellColor = temperatureToColor(params.tw, minTemperature, maxTemperature);
+      context.beginPath();
+      context.arc(centerX, centerY, wellRadius, 0, Math.PI * 2);
+      context.fillStyle = wellColor;
+      context.fill();
+      context.lineWidth = Math.max(5, width * 0.012);
+      context.strokeStyle = "rgba(23, 33, 31, 0.58)";
+      context.stroke();
+
+      context.beginPath();
+      context.arc(centerX, centerY, wellRadius * 0.58, 0, Math.PI * 2);
+      context.strokeStyle = "rgba(255, 255, 255, 0.72)";
+      context.lineWidth = Math.max(2, width * 0.004);
+      context.stroke();
+
+      const outwardFlow = params.tw > params.tf;
+      const equalTemperatures = Math.abs(params.tw - params.tf) < 0.01;
+      const arrowColor = outwardFlow ? "#c56b2c" : "#265d8f";
+
+      flowLegend.classList.toggle("is-inward", !outwardFlow && !equalTemperatures);
+      flowDirection.textContent = equalTemperatures
+        ? "Sem gradiente térmico"
+        : outwardFlow
+          ? "Fluxo do poço para a formação"
+          : "Fluxo da formação para o poço";
+
+      if (!equalTemperatures) {
+        const arrowStart = outwardFlow ? wellRadius * 1.18 : outerRadius * 0.72;
+        const arrowEnd = outwardFlow ? outerRadius * 0.72 : wellRadius * 1.18;
+        const angles = [-Math.PI / 4, Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4];
+
+        angles.forEach((angle) => {
+          drawArrow(context, centerX, centerY, arrowStart, arrowEnd, angle, arrowColor);
+        });
+      }
+
+      context.save();
+      context.fillStyle = "rgba(23, 33, 31, 0.70)";
+      context.font = `${Math.max(12, width * 0.026)}px Inter, Segoe UI, sans-serif`;
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText("poço", centerX, centerY);
+      context.restore();
+    }
+
+    function solveHeatEquation(params) {
+      const dr = (rMax - params.rw) / (nodeCount - 1);
+      const radii = Array.from({ length: nodeCount }, (_, i) => params.rw + i * dr);
+      let temperature = Array(nodeCount).fill(params.tf);
+
+      // Condição inicial:
+      // no instante t = 0, toda a formação começa em Tf,
+      // exceto o nó do poço, que já obedece à condição de contorno Tw.
+      temperature[0] = params.tw;
+      temperature[nodeCount - 1] = params.tf;
+
+      const targetSeconds = params.days * dayInSeconds;
+      if (targetSeconds === 0) {
+        return { radii, temperature, steps: 0, dr };
+      }
+
+      // Esquema explícito em diferenças finitas:
+      // dT/dt = alpha * (d2T/dr2 + (1/r) * dT/dr)
+      //
+      // Para cada nó interno i:
+      // d2T/dr2 ≈ (T[i+1] - 2*T[i] + T[i-1]) / dr²
+      // dT/dr   ≈ (T[i+1] - T[i-1]) / (2*dr)
+      //
+      // O termo (1/r) aparece porque o fluxo de calor se espalha radialmente
+      // ao redor do poço. Perto do poço, r é menor e esse termo pesa mais.
+      const stableDt = 0.22 * dr * dr / params.alpha;
+      const steps = Math.max(1, Math.ceil(targetSeconds / stableDt));
+      const dt = targetSeconds / steps;
+      const diffusionFactor = params.alpha * dt;
+
+      for (let step = 0; step < steps; step++) {
+        const nextTemperature = temperature.slice();
+
+        for (let i = 1; i < nodeCount - 1; i++) {
+          const r = radii[i];
+          const secondDerivative = (temperature[i + 1] - 2 * temperature[i] + temperature[i - 1]) / (dr * dr);
+          const firstDerivative = (temperature[i + 1] - temperature[i - 1]) / (2 * dr);
+
+          nextTemperature[i] = temperature[i] + diffusionFactor * (secondDerivative + firstDerivative / r);
+        }
+
+        // Condições de contorno de Dirichlet:
+        // o poço permanece em Tw e a borda externa permanece em Tf.
+        nextTemperature[0] = params.tw;
+        nextTemperature[nodeCount - 1] = params.tf;
+        temperature = nextTemperature;
+      }
+
+      return { radii, temperature, steps, dr };
+    }
+
+    function updateLabels(params) {
+      outputs.tw.textContent = `${formatNumber(params.tw, 0)} °C`;
+      outputs.tf.textContent = `${formatNumber(params.tf, 0)} °C`;
+      outputs.rw.textContent = `${formatNumber(params.rw, 2)} m`;
+      outputs.alpha.textContent = `${formatNumber(params.alphaDisplay, 2)} ×10⁻⁶`;
+      outputs.time.textContent = `${formatNumber(params.days, 0)} d`;
+    }
+
+    function updateMetrics(params, result) {
+      outputs.temp1m.textContent = `${formatNumber(nearestTemperature(result.radii, result.temperature, Math.max(1, params.rw)), 1)} °C`;
+      outputs.temp10m.textContent = `${formatNumber(nearestTemperature(result.radii, result.temperature, 10), 1)} °C`;
+      outputs.diffLength.textContent = `${formatNumber(Math.sqrt(params.alpha * params.days * dayInSeconds), 2)} m`;
+      outputs.stepCount.textContent = result.steps.toLocaleString("pt-BR");
+    }
+
+    function renderPlot(params, result) {
+      const trace = {
+        x: result.radii,
+        y: result.temperature,
+        type: "scatter",
+        mode: "lines",
+        name: "T(r)",
+        line: {
+          color: "#0f766e",
+          width: 4,
+          shape: "spline"
+        },
+        hovertemplate: "r = %{x:.2f} m<br>T = %{y:.2f} °C<extra></extra>"
+      };
+
+      const yMin = Math.min(params.tw, params.tf) - 8;
+      const yMax = Math.max(params.tw, params.tf) + 8;
+
+      const layout = {
+        margin: { t: 28, r: 18, b: 58, l: 62 },
+        paper_bgcolor: "#ffffff",
+        plot_bgcolor: "#fbfcfc",
+        font: {
+          family: "Inter, Segoe UI, sans-serif",
+          color: "#17211f"
+        },
+        xaxis: {
+          title: "Raio r (m)",
+          range: [params.rw, rMax],
+          gridcolor: "#e3ebe7",
+          zeroline: false
+        },
+        yaxis: {
+          title: "Temperatura T (°C)",
+          range: [yMin, yMax],
+          gridcolor: "#e3ebe7",
+          zeroline: false
+        },
+        shapes: [
+          {
+            type: "line",
+            x0: params.rw,
+            x1: params.rw,
+            y0: yMin,
+            y1: yMax,
+            line: { color: "#c56b2c", width: 2, dash: "dot" }
+          },
+          {
+            type: "line",
+            x0: rMax,
+            x1: rMax,
+            y0: yMin,
+            y1: yMax,
+            line: { color: "#265d8f", width: 2, dash: "dot" }
+          }
+        ],
+        annotations: [
+          {
+            x: params.rw,
+            y: params.tw,
+            xanchor: "left",
+            yanchor: "bottom",
+            text: "Tw",
+            showarrow: false,
+            font: { color: "#c56b2c", size: 12 }
+          },
+          {
+            x: rMax,
+            y: params.tf,
+            xanchor: "right",
+            yanchor: "top",
+            text: "Tf",
+            showarrow: false,
+            font: { color: "#265d8f", size: 12 }
+          }
+        ],
+        showlegend: false,
+        hovermode: "closest"
+      };
+
+      const config = {
+        responsive: true,
+        displayModeBar: false
+      };
+
+      Plotly.react(plotElement, [trace], layout, config);
+    }
+
+    function updateSimulation() {
+      updateQueued = false;
+      const params = getParams();
+      updateLabels(params);
+      const result = solveHeatEquation(params);
+      updateMetrics(params, result);
+      renderWellCanvas(params, result);
+      renderPlot(params, result);
+    }
+
+    function scheduleUpdate() {
+      if (updateQueued) return;
+      updateQueued = true;
+      requestAnimationFrame(updateSimulation);
+    }
+
+    function stopAnimation() {
+      if (animationFrameId === null) return;
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+      lastAnimationTick = 0;
+      animateBtn.textContent = "Animar";
+      animateBtn.classList.remove("is-running");
+    }
+
+    function animationLoop(timestamp) {
+      if (lastAnimationTick === 0) {
+        lastAnimationTick = timestamp;
+      }
+
+      if (timestamp - lastAnimationTick >= 110) {
+        const currentDay = Number(controls.time.value);
+        const maxDay = Number(controls.time.max);
+
+        if (currentDay >= maxDay) {
+          controls.time.value = controls.time.min;
+        } else {
+          controls.time.value = currentDay + 1;
+        }
+
+        lastAnimationTick = timestamp;
+        scheduleUpdate();
+      }
+
+      animationFrameId = requestAnimationFrame(animationLoop);
+    }
+
+    function startAnimation() {
+      animateBtn.textContent = "Pausar";
+      animateBtn.classList.add("is-running");
+      animationFrameId = requestAnimationFrame(animationLoop);
+    }
+
+    Object.values(controls).forEach((control) => {
+      control.addEventListener("input", () => {
+        scheduleUpdate();
+      });
+    });
+
+    animateBtn.addEventListener("click", () => {
+      if (animationFrameId !== null) {
+        stopAnimation();
+      } else {
+        startAnimation();
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      Plotly.Plots.resize(plotElement);
+      scheduleUpdate();
+    });
+
+    updateSimulation();
+  </script>
+</body>
+</html>
